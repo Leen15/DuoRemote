@@ -1,0 +1,65 @@
+name: Build unsigned IPA
+
+# Builds an unsigned DuoRemote.ipa for sideloading (SideStore/AltStore sign it on install).
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-ipa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: xcode-27
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Archive (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project DuoRemote.xcodeproj \
+            -scheme DuoRemote \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/DuoRemote.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E 'error:|warning: .*deprecated|ARCHIVE (SUCCEEDED|FAILED)' || true
+          test -d "$RUNNER_TEMP/DuoRemote.xcarchive/Products/Applications/DuoRemote.app"
+
+      - name: Package IPA
+        run: |
+          cd "$RUNNER_TEMP"
+          mkdir -p Payload
+          cp -R DuoRemote.xcarchive/Products/Applications/DuoRemote.app Payload/
+          zip -qry DuoRemote.ipa Payload
+          ls -lh DuoRemote.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DuoRemote-ipa-${{ github.sha }}
+          path: ${{ runner.temp }}/DuoRemote.ipa
+          retention-days: 30
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: xcodebuild-log
+          path: ${{ runner.temp }}/xcodebuild.log
