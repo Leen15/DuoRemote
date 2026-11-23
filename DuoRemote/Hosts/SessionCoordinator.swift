@@ -88,6 +88,14 @@ final class SessionCoordinator {
         activeHost = host
     }
 
+    func selectDisplay(_ number: Int) {
+        active?.selectDisplay(number)
+        guard var host = activeHost.flatMap({ store.host(withID: $0.id) }) else { return }
+        host.selectedDisplay = active?.selectedDisplay ?? 0
+        store.update(host)
+        activeHost = host
+    }
+
     /// User-initiated disconnect.
     func disconnect() {
         cancelTasks()
@@ -157,6 +165,7 @@ final class SessionCoordinator {
             session = VNCSession(hostname: host.hostname, port: host.port)
             sessions[host.id] = session
         }
+        session.configureDisplays(grid: host.displayGrid, selection: host.selectedDisplay)
         session.scrollSpeedOverride = store.host(withID: host.id)?.scrollSpeed ?? host.scrollSpeed
 
         self.credentials = credentials

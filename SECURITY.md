@@ -13,3 +13,9 @@ impersonated VNC server could crash the app or make it run out of memory, by sen
 palette indices, Hextile rectangle sizes) or very large lengths (clipboard text, desktop name, compressed frames).
 These can't read your data or run code, and the Tailscale check makes reaching an impersonated server hard. Fixes
 are welcome; see `Vendor/RoyalVNCKit/PATCHES.md` for how local changes are recorded.
+
+Third-party keyboards are blocked by default. Settings → Allow third-party keyboards explicitly
+opts into allowing keyboard extensions, which can see text typed into the Mac. This weakens the
+default keyboard privacy protection. The locked text box (`SecureField`) always uses the system
+keyboard, including when this option is enabled. The app reads the persisted option on every
+keyboard-extension permission request.

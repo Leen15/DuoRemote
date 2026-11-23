@@ -1,4 +1,4 @@
-# Multi-display Macs: no per-display switching (decided 2026-10-25)
+# Multi-display Macs: manual equal-grid switching
 
 ## What happens
 
@@ -7,7 +7,7 @@ macOS Screen Sharing as **one stitched framebuffer** covering every display in i
 layout. DuoRemote shows it as one large desktop: the pointer moves across all displays and you
 pinch-zoom to whichever area you want. That works and is what the app does.
 
-## Why there's no "jump to display N"
+## Why automatic display discovery is unavailable
 
 - The VNC protocol has a standard way for a server to list its displays: the
   `ExtendedDesktopSize` pseudo-encoding's screen list (RoyalVNCKit exposes it as
@@ -30,11 +30,25 @@ pinch-zoom to whichever area you want. That works and is what the app does.
 2. Detecting displays from the picture: black gaps between displays plus seams between
    touching ones. Started, then stopped. It's a heuristic that can't be dependable for an
    arbitrary set of monitors.
-3. A per-Mac manual layout (the user describes the arrangement once). Declined: too fiddly for
-   the benefit.
+3. A general per-Mac manual arrangement editor was declined as too fiddly. A limited equal-grid
+   option is now supported, as described below.
 
-## If this is revisited
+## If automatic discovery is revisited
 
-- If a future macOS reports real screens via `ExtendedDesktopSize`, revert the revert: the
-  switcher code is in history and lights up automatically when `screens.count > 1`.
+- If a future macOS reports real screens via `ExtendedDesktopSize`, consider using that screen list instead of the
+  manual grid. The earlier switcher code is in history.
 - Check what a Mac reports by logging `framebuffer.screens` when the framebuffer is created.
+
+## Manual equal-grid layout (2026-11-23)
+
+Edit Mac → Display layout offers Single (the default), 2 side by side, 3 side by side, 2×2,
+and Custom with 1–4 columns and rows. The stitched framebuffer is divided into equal cells,
+numbered left to right, then top to bottom. Integer boundaries distribute leftover pixels
+without gaps or overlaps. This supports only equal-resolution displays in a regular grid;
+it cannot represent mixed resolutions, gaps, offsets, or irregular arrangements.
+
+In both full screen and the laptop-pose deck, ••• → Display offers All and 1–N. Selecting a
+display fits its cell and moves the pointer to its centre; All fits the whole framebuffer.
+Pinch and pan remain available. The last selection is saved per Mac and re-applied when a
+connection or reconnection receives its framebuffer, and whenever the framebuffer is resized.
+No private macOS extensions or screen-image heuristics are used.

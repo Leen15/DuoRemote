@@ -47,6 +47,32 @@ final class VNCSession {
     var inputMode: InputMode = UserDefaults.standard.string(forKey: "defaultInputMode").flatMap(InputMode.init(rawValue:)) ?? .trackpad
     let modifiers = ModifierState()
     let isDemo: Bool
+    private(set) var displayGrid = DisplayGrid(columns: 1, rows: 1)
+    private(set) var selectedDisplay = 0
+
+    func configureDisplays(grid: DisplayGrid, selection: Int) {
+        displayGrid = grid
+        selectedDisplay = (0...grid.count).contains(selection) && grid.count > 1 ? selection : 0
+    }
+
+    func selectDisplay(_ number: Int) {
+        selectedDisplay = (0...displayGrid.count).contains(number) && displayGrid.count > 1 ? number : 0
+        applyDisplaySelection()
+    }
+
+    private func applyDisplaySelection() {
+        guard let framebufferSize else { return }
+        let rects = displayGrid.rects(framebufferSize: framebufferSize)
+        if selectedDisplay > 0, rects.indices.contains(selectedDisplay - 1) {
+            let rect = rects[selectedDisplay - 1]
+            viewport.fit(to: rect)
+            movePointer(to: CGPoint(x: rect.midX, y: rect.midY))
+            flushPointer()
+        } else {
+            viewport.zoomToFit()
+        }
+        display?.viewportDidChange()
+    }
 
     /// The Mac's cursor is the text I-beam (heuristic from its shape).
     private(set) var cursorIsTextBeam = false
@@ -210,6 +236,7 @@ final class VNCSession {
         if firstFrame || pointer.x >= box.size.width || pointer.y >= box.size.height {
             pointer = CGPoint(x: box.size.width / 2, y: box.size.height / 2)
         }
+        applyDisplaySelection()
         display?.framebufferDidChange()
     }
 

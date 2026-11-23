@@ -538,6 +538,9 @@ struct HostEditor: View {
     @State private var password = ""
     @State private var passwordLoaded: Bool
     @State private var allowOutside: Bool
+    @State private var displayLayout: DisplayLayout
+    @State private var displayColumns: Int
+    @State private var displayRows: Int
     @State private var showErrors = false
 
     init(host: Host?, store: HostStore) {
@@ -552,6 +555,9 @@ struct HostEditor: View {
         _symbol = State(initialValue: host?.symbolName ?? HostSymbol.defaultName)
         _passwordLoaded = State(initialValue: host == nil)
         _allowOutside = State(initialValue: host?.allowOutsideTailscale ?? false)
+        _displayLayout = State(initialValue: host?.displayLayout ?? .single)
+        _displayColumns = State(initialValue: min(max(host?.displayColumns ?? 2, 1), 4))
+        _displayRows = State(initialValue: min(max(host?.displayRows ?? 2, 1), 4))
     }
 
     private var port: UInt16? {
@@ -582,6 +588,19 @@ struct HostEditor: View {
                     TextField("Name", text: $name)
                     if showErrors, let nameError { ErrorText(nameError) }
                     SymbolPicker(selection: $symbol)
+                }
+                Section {
+                    Picker("Display layout", selection: $displayLayout) {
+                        ForEach(DisplayLayout.allCases, id: \.self) { layout in
+                            Text(layout.label).tag(layout)
+                        }
+                    }
+                    if displayLayout == .custom {
+                        Stepper("Columns: \(displayColumns)", value: $displayColumns, in: 1...4)
+                        Stepper("Rows: \(displayRows)", value: $displayRows, in: 1...4)
+                    }
+                } footer: {
+                    Text("For equal-resolution displays in a regular grid. Numbered left to right, then top to bottom.")
                 }
                 Section("Connection") {
                     TextField("Hostname", text: $hostname, prompt: Text("my-mac or 100.x.x.x"))
@@ -649,6 +668,10 @@ struct HostEditor: View {
         result.username = username.trimmingCharacters(in: .whitespaces)
         result.symbol = symbol
         result.allowOutsideTailscale = allowOutside
+        result.displayLayout = displayLayout
+        result.displayColumns = displayColumns
+        result.displayRows = displayRows
+        if result.displayGrid != host?.displayGrid { result.selectedDisplay = 0 }
 
         if host == nil { store.add(result) } else { store.update(result) }
 

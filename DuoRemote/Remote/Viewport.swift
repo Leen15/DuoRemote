@@ -14,8 +14,9 @@ struct Viewport: Equatable {
     private(set) var displayScale: CGFloat = 3
     private(set) var scale: CGFloat = 1
     private(set) var offset: CGPoint = .zero
-    /// True while the user hasn't zoomed away from fit; fit is re-applied on every resize.
+    /// Keeps the fitted region centred when the available space changes.
     private(set) var isFit = true
+    private var fittedRect: CGRect?
 
     var hasContent: Bool { contentSize.width > 0 && contentSize.height > 0 && bounds.width > 0 && bounds.height > 0 }
 
@@ -35,7 +36,7 @@ struct Viewport: Equatable {
     /// One remote pixel per device pixel.
     var actualPixelsScale: CGFloat { 1 / displayScale }
     var minScale: CGFloat { fitScale }
-    var maxScale: CGFloat { max(fitScale, 4 * actualPixelsScale) }
+    var maxScale: CGFloat { max(fitScale, max(rectFitScale, 4 * actualPixelsScale)) }
 
     /// The content rect in view points.
     var contentFrame: CGRect {
@@ -80,6 +81,7 @@ struct Viewport: Equatable {
     // MARK: Gestures
 
     mutating func pan(by d: CGVector) {
+        isFit = false
         offset.x += d.dx
         offset.y += d.dy
         clampOffset()
@@ -95,10 +97,25 @@ struct Viewport: Equatable {
         scale = newScale
         clampOffset()
         isFit = abs(scale - fitScale) < 0.0001
+        if isFit { fittedRect = nil }
     }
 
     mutating func zoomToFit() {
+        fittedRect = nil
         applyFit()
+    }
+
+    mutating func fit(to rect: CGRect) {
+        let clipped = rect.intersection(CGRect(origin: .zero, size: contentSize))
+        guard !clipped.isNull, clipped.width > 0, clipped.height > 0 else { return }
+        fittedRect = clipped
+        isFit = true
+        applyFit()
+    }
+
+    private var rectFitScale: CGFloat {
+        guard let fittedRect else { return fitScale }
+        return min(visibleRect.width / fittedRect.width, visibleRect.height / fittedRect.height)
     }
 
     /// 1 remote pixel → 1 device pixel, centred on `contentPoint`.
@@ -106,6 +123,7 @@ struct Viewport: Equatable {
         guard hasContent else { return }
         setScale(min(max(actualPixelsScale, minScale), maxScale), keeping: contentPoint)
         isFit = abs(scale - fitScale) < 0.0001
+        if isFit { fittedRect = nil }
     }
 
     /// Scrolls just enough to keep `contentPoint` (the pointer) inside the visible rect less `margin`.
@@ -129,9 +147,12 @@ struct Viewport: Equatable {
 
     private mutating func applyFit() {
         guard hasContent else { return }
-        scale = fitScale
+        scale = rectFitScale
         isFit = true
-        clampOffset()   // content ≤ visible on both axes → centred
+        let rect = fittedRect ?? CGRect(origin: .zero, size: contentSize)
+        let visible = visibleRect
+        offset = CGPoint(x: visible.midX - rect.midX * scale,
+                         y: visible.midY - rect.midY * scale)
     }
 
     /// Sets the scale so `contentPoint` lands at the visible centre, then clamps.

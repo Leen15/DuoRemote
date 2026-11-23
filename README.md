@@ -33,6 +33,7 @@ It's designed to work over [Tailscale](https://tailscale.com) or a network you t
 
 ## All features
 
+- **Display grid.** Choose an equal-resolution grid per Mac (including 2×2), then use ••• → Display → All or 1–N to fit a display and centre its pointer. The selection is remembered.
 - **Trackpad or direct touch.** Drag to move the pointer, tap to click, two-finger tap to right-click, two-finger drag to scroll (with momentum), hold then drag to drag, pinch to zoom, three-finger drag to pan. A magnifier appears while you drag, for precise targets.
 - **Key bar.** Sticky ⌘ ⌥ ⌃ ⇧ (tap to latch, double-tap to lock), Esc, Tab, Delete, arrows, right-click, and the iOS keyboard. Hardware keyboards pass straight through.
 - **Text box.** A real iOS text field (with dictation) that types into the Mac. Return sends and presses Return; ↑ sends without it. It opens by itself when you click into text on the Mac (turn that off in ••• or Settings); once you close it, it stays closed until the pointer leaves the text.
@@ -62,7 +63,7 @@ It's designed to work over [Tailscale](https://tailscale.com) or a network you t
 - The app reads the iPhone clipboard only when you tap Paste, and iOS asks first ("Allow Paste"). Text from the Mac's clipboard and Copy text from screen's Copy all stay on this iPhone (no Handoff) and expire after 10 minutes; Live Text's own Copy menu works like any other copy.
 - Copy text from screen runs Live Text on the phone; the snapshot never leaves it.
 - The app switcher shows a blank cover instead of the app, including any open sheet.
-- Third-party keyboards are turned off in the app. The text box's lock button hides what you type and turns off autocorrect and suggestions, for typing passwords.
+- Third-party keyboards are off by default. Settings → Allow third-party keyboards opts in: a third-party keyboard can see what you type into the Mac. The locked text box always uses the system keyboard, hides what you type, and turns off autocorrect and suggestions.
 - Paste to Mac types the text. Line breaks are typed as Shift-Return so nothing is submitted, but some apps, such as Terminal, treat Shift-Return as Return. Text with line breaks or over 2,000 characters asks first.
 
 ## Building

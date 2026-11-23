@@ -9,6 +9,7 @@ struct SettingsView: View {
     @AppStorage("autoCompose") private var autoCompose = true
     @AppStorage("effectsEnabled") private var effectsEnabled = true
     @AppStorage("skyTheme") private var skyTheme = true
+    @AppStorage("allowThirdPartyKeyboards") private var allowThirdPartyKeyboards = false
 
     private var version: String {
         let info = Bundle.main.infoDictionary
@@ -53,6 +54,12 @@ struct SettingsView: View {
                     Text("Controls")
                 } footer: {
                     Text("Natural scrolling moves content with your finger. Changes apply to the next connection.")
+                }
+
+                Section {
+                    Toggle("Allow third-party keyboards", isOn: $allowThirdPartyKeyboards)
+                } footer: {
+                    Text("A third-party keyboard can see what you type into the Mac. The locked text box always uses the system keyboard.")
                 }
 
                 Section("Privacy") {

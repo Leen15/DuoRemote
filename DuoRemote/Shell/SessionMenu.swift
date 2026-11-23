@@ -25,6 +25,16 @@ struct SessionMenu: View {
             Toggle(isOn: $autoCompose) {
                 Label("Text box on click into text", systemImage: "character.cursor.ibeam")
             }
+            if session.displayGrid.count > 1 {
+                Picker("Display", selection: Binding(
+                    get: { session.selectedDisplay },
+                    set: { coordinator.selectDisplay($0) })) {
+                    Text("All").tag(0)
+                    ForEach(1...session.displayGrid.count, id: \.self) { number in
+                        Text("\(number)").tag(number)
+                    }
+                }
+            }
             Section {
                 Button("Zoom to fit", systemImage: "arrow.down.right.and.arrow.up.left") { session.zoomToFit() }
                 Button("Actual pixels", systemImage: "1.magnifyingglass") { session.zoomToActualPixels() }

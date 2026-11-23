@@ -34,6 +34,8 @@ struct HostsTests {
         var extra = Host(name: "Studio", hostname: "studio", port: 5901, username: "user")
         store.add(extra)
         extra.username = "other"
+        extra.displayLayout = .twoByTwo
+        extra.selectedDisplay = 4
         store.update(extra)
 
         let reloaded = HostStore(fileURL: url)
@@ -64,6 +66,8 @@ struct HostsTests {
         #expect(host.symbol == nil && host.lastConnected == nil)
         #expect(host.symbolName == "desktopcomputer")
         #expect(host.allowOutsideTailscale == false)
+        #expect(host.displayLayout == .single)
+        #expect(host.displayGrid.count == 1 && host.selectedDisplay == 0)
     }
 
     @Test func allowOutsideTailscaleRoundTrips() throws {
@@ -71,6 +75,66 @@ struct HostsTests {
         host.allowOutsideTailscale = true
         let back = try JSONDecoder().decode(Host.self, from: JSONEncoder().encode(host))
         #expect(back.allowOutsideTailscale)
+    }
+
+    @Test func displayLayoutAndSelectionRoundTrip() throws {
+        var host = Host(name: "Grid", hostname: "grid", username: "u")
+        host.displayLayout = .custom
+        host.displayColumns = 4
+        host.displayRows = 3
+        host.selectedDisplay = 11
+        let back = try JSONDecoder().decode(Host.self, from: JSONEncoder().encode(host))
+        #expect(back == host)
+        #expect(back.displayGrid == DisplayGrid(columns: 4, rows: 3))
+    }
+
+    @Test func gridRectsAreRowMajor() {
+        let rects = DisplayGrid(columns: 2, rows: 2).rects(framebufferSize: CGSize(width: 400, height: 200))
+        #expect(rects == [CGRect(x: 0, y: 0, width: 200, height: 100),
+                          CGRect(x: 200, y: 0, width: 200, height: 100),
+                          CGRect(x: 0, y: 100, width: 200, height: 100),
+                          CGRect(x: 200, y: 100, width: 200, height: 100)])
+    }
+
+    @Test func oddGridRectsTileWholeFramebuffer() {
+        for columns in 1...4 {
+            for rows in 1...4 {
+                let whole = CGRect(x: 0, y: 0, width: 101, height: 77)
+                let rects = DisplayGrid(columns: columns, rows: rows).rects(framebufferSize: whole.size)
+                #expect(rects.count == columns * rows)
+                #expect(rects.reduce(CGRect.null) { $0.union($1) } == whole)
+                #expect(rects.reduce(CGFloat.zero) { $0 + $1.width * $1.height } == whole.width * whole.height)
+                for (index, rect) in rects.enumerated() {
+                    #expect(rect == rect.integral)
+                    for other in rects.dropFirst(index + 1) {
+                        let overlap = rect.intersection(other)
+                        #expect(overlap.isNull || overlap.isEmpty)
+                    }
+                }
+            }
+        }
+    }
+
+    @Test func gridBoundsAndEmptyFramebuffer() {
+        #expect(DisplayGrid(columns: 0, rows: 20) == DisplayGrid(columns: 1, rows: 4))
+        #expect(DisplayGrid(columns: 2, rows: 2).rects(framebufferSize: .zero).isEmpty)
+        let tiny = DisplayGrid(columns: 4, rows: 4).rects(framebufferSize: CGSize(width: 1, height: 1))
+        #expect(tiny.reduce(CGFloat.zero) { $0 + $1.width * $1.height } == 1)
+    }
+
+    @Test func displaySelectionFitsAndMovesPointer() throws {
+        let session = VNCSession.demo()
+        session.viewport.setBounds(CGSize(width: 400, height: 300), insets: .zero, displayScale: 3)
+        session.configureDisplays(grid: DisplayGrid(columns: 2, rows: 2), selection: 0)
+        session.selectDisplay(4)
+        let size = try #require(session.framebufferSize)
+        let rect = session.displayGrid.rects(framebufferSize: size)[3]
+        #expect(session.pointer == CGPoint(x: rect.midX, y: rect.midY))
+        #expect(session.selectedDisplay == 4)
+        session.selectDisplay(0)
+        #expect(session.viewport.scale == session.viewport.fitScale)
+        session.selectDisplay(99)
+        #expect(session.selectedDisplay == 0)
     }
 
     @Test func newFieldsRoundTrip() throws {
