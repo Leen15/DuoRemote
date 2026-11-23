@@ -279,6 +279,7 @@ private struct SessionBar: View {
             } right: {
                 ScrollView(.horizontal) {
                     HStack(spacing: 8) {
+                        KeyBarDisplayButton(session: session, selectDisplay: coordinator.selectDisplay)
                         KeyBarMouseKeys(session: session)
                         KeyBarNavigationKeys(session: session)
                         controls
@@ -290,7 +291,7 @@ private struct SessionBar: View {
                 .glassEffect(.regular, in: .rect(cornerRadius: 22))
             }
         } else {
-            KeyBar(session: session, keyboardShown: $keyboardShown) { controls }
+            KeyBar(session: session, keyboardShown: $keyboardShown, selectDisplay: coordinator.selectDisplay) { controls }
                 .glassEffect(.regular, in: .rect(cornerRadius: 22))
                 .clipShape(.rect(cornerRadius: 22))   // keep the scrolling key row inside the bar
         }

@@ -137,6 +137,23 @@ struct HostsTests {
         #expect(session.selectedDisplay == 0)
     }
 
+    @Test func advancingDisplaySelectionWrapsToAll() {
+        let session = VNCSession.demo()
+        for count in 1...4 {
+            session.configureDisplays(grid: DisplayGrid(columns: count, rows: 1), selection: 0)
+            for _ in 0..<2 {
+                if count > 1 {
+                    for number in 1...count {
+                        session.selectDisplay(session.selectedDisplay + 1)
+                        #expect(session.selectedDisplay == number)
+                    }
+                }
+                session.selectDisplay(session.selectedDisplay + 1)
+                #expect(session.selectedDisplay == 0)
+            }
+        }
+    }
+
     @Test func newFieldsRoundTrip() throws {
         let host = Host(name: "A", hostname: "a", username: "u", symbol: "macmini",
                         lastConnected: Date(timeIntervalSince1970: 100))

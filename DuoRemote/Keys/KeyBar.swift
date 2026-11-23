@@ -7,11 +7,14 @@ struct KeyBar<Accessory: View>: View {
     let session: VNCSession
     @Binding var keyboardShown: Bool
     let accessory: Accessory
+    let selectDisplay: (Int) -> Void
 
-    init(session: VNCSession, keyboardShown: Binding<Bool>, @ViewBuilder accessory: () -> Accessory) {
+    init(session: VNCSession, keyboardShown: Binding<Bool>, selectDisplay: @escaping (Int) -> Void,
+         @ViewBuilder accessory: () -> Accessory) {
         self.session = session
         self._keyboardShown = keyboardShown
         self.accessory = accessory()
+        self.selectDisplay = selectDisplay
     }
 
     @State private var width: CGFloat = 0
@@ -47,6 +50,7 @@ struct KeyBar<Accessory: View>: View {
         ScrollView(.horizontal) {
             GlassEffectContainer(spacing: 8) {
                 HStack(spacing: 8) {
+                    KeyBarDisplayButton(session: session, selectDisplay: selectDisplay)
                     KeyBarModifierKeys(session: session)
                     KeyBarMouseKeys(session: session)
                     KeyBarNavigationKeys(session: session)
@@ -64,6 +68,47 @@ struct KeyBar<Accessory: View>: View {
                 KeyBarKeyboardToggle(shown: $keyboardShown)
                 accessory
             }
+        }
+    }
+}
+
+/// Tap advances through the existing selection policy; long press offers a direct choice.
+struct KeyBarDisplayButton: View {
+    let session: VNCSession
+    let selectDisplay: (Int) -> Void
+
+    private var selectionLabel: String {
+        session.selectedDisplay == 0 ? "All" : String(session.selectedDisplay)
+    }
+
+    var body: some View {
+        if session.displayGrid.count > 1 {
+            Button {
+                selectDisplay(session.selectedDisplay + 1)
+            } label: {
+                KeyCap(label: HStack(spacing: 4) {
+                    Image(systemName: "display")
+                    Text(selectionLabel).monospacedDigit()
+                }
+                .font(.callout.weight(.medium))
+                .fixedSize()
+                .padding(.horizontal, 8), state: .off, accent: .nav)
+            }
+            .buttonStyle(.plain)
+            .contextMenu {
+                Picker("Display", selection: Binding(
+                    get: { session.selectedDisplay },
+                    set: { selectDisplay($0) })) {
+                    Text("All").tag(0)
+                    ForEach(1...session.displayGrid.count, id: \.self) { number in
+                        Text("\(number)").tag(number)
+                    }
+                }
+            }
+            .sensoryFeedback(.selection, trigger: session.selectedDisplay)
+            .accessibilityLabel("Display")
+            .accessibilityValue(selectionLabel)
+            .accessibilityHint("Tap for the next display. Touch and hold to choose a display.")
         }
     }
 }

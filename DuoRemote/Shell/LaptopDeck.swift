@@ -51,10 +51,21 @@ struct LaptopDeck: View {
     // MARK: Header — tools left, mode switch centre, session right
 
     private var header: some View {
-        // Must fit the folded-out width (~466 pt): "Copy text from screen" lives in the ••• menu.
+        ViewThatFits(in: .horizontal) {
+            headerControls
+            ScrollView(.horizontal) {
+                headerControls.fixedSize(horizontal: true, vertical: false)
+            }
+            .scrollIndicators(.hidden)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var headerControls: some View {
         HStack(spacing: 8) {
             GlassEffectContainer(spacing: 8) {
                 HStack(spacing: 8) {
+                    KeyBarDisplayButton(session: session, selectDisplay: coordinator.selectDisplay)
                     DeckIconButton(systemImage: "doc.on.clipboard", label: "Paste to Mac", action: session.pasteClipboard)
                         .pasteBeamSource()
                     DeckIconButton(systemImage: composeShown ? "text.bubble.fill" : "text.bubble", label: "Text box",
